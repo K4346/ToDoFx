@@ -1,30 +1,31 @@
 package com.example.todofx;
 
-import com.almasb.fxgl.logging.ConsoleOutput;
+import com.example.todofx.data.AddItem;
+import com.example.todofx.data.DetailItem;
 import com.example.todofx.data.TaskEntity;
 import javafx.application.Application;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
-import javafx.fxml.FXMLLoader;
 import javafx.geometry.Orientation;
+import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
-import javafx.scene.layout.StackPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
+import javafx.scene.text.Text;
 import javafx.stage.Stage;
 
-import java.io.Console;
 import java.io.IOException;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 
 public class HelloApplication extends Application {
+    protected ListView<TaskEntity> listView;
+
     @Override
     public void start(Stage stage) throws IOException {
 //        FXMLLoader fxmlLoader = new FXMLLoader(HelloApplication.class.getResource("hello-view.fxml"));
@@ -33,24 +34,27 @@ public class HelloApplication extends Application {
 //        stage.setScene(scene);
 //        stage.show();
 
-        ListView<TaskEntity> listView = new ListView<>();
+        listView = new ListView<>();
         for (int i = 1; i <= 3; i++) {
-            listView.getItems().add(new TaskEntity("Item " + i,"",false,""));
+            listView.getItems().add(new TaskEntity("Item " + i, "", TaskEntity.RegularRange.None, LocalDate.now()));
         }
 
         listView.setCellFactory(param -> new ListCell<TaskEntity>() {
             private final CheckBox checkBox = new CheckBox();
-            private final TextField textField = new TextField();
+            private final Text title = new Text();
+
+            private final Text date = new Text();
 
             { //todo remove?
-                textField.setEditable(false);
 
-
-                if (getItem()!=null){
-                setContentDisplay(ContentDisplay.RIGHT);
-                textField.textProperty().bindBidirectional(new SimpleStringProperty(getItem().getName()));
-                checkBox.selectedProperty().bindBidirectional(new SimpleBooleanProperty(getItem().isReady()));
-            }}
+                if (getItem() != null) {
+                    setContentDisplay(ContentDisplay.RIGHT);
+                    title.textProperty().bindBidirectional(new SimpleStringProperty(getItem().getName()));
+//                todo
+                    date.textProperty().bindBidirectional(new SimpleStringProperty(getItem().getDate().format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))));
+                    checkBox.selectedProperty().bindBidirectional(new SimpleBooleanProperty(getItem().isReady()));
+                }
+            }
 
 
             @Override
@@ -59,24 +63,50 @@ public class HelloApplication extends Application {
                 if (empty || item == null) {
                     setGraphic(null);
                 } else {
-                    textField.setText(item.getName());
-
+//                    VBox root = new VBox(
+//                            10,
+//                            title,
+//                            description,
+//                            new HBox(new Text("Срок выполнения:"), datePicker),
+//                            new HBox(new Text("Регулярная задача:"), isRegular, spinner),
+//                            add
+//                    );
+//                    root.setPadding(new Insets(10));
+                    title.setText(item.getName());
                     checkBox.setSelected(item.isReady());
-                    BorderPane borderPane =new BorderPane(checkBox, null, textField, null, null);
-                    borderPane.addEventFilter(MouseEvent.MOUSE_CLICKED,event->{
-                        System.out.println("sdfdsfsd");
-                        Stage secondaryStage = new Stage();
-                        StackPane root2 = new StackPane();
-                        Scene secondaryScene = new Scene(root2, 200, 200);
-                        secondaryStage.setScene(secondaryScene);
-                        secondaryStage.show();
+                    date.setText(item.getDate().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
+//                    BorderPane borderPane =new BorderPane(checkBox, null, title, null, null);
+                    VBox rootDetailTask = new VBox(10, new HBox(10, checkBox, title), date);
+                    rootDetailTask.addEventFilter(MouseEvent.MOUSE_CLICKED, event -> {
+                        Stage detailTaskStage = new Stage();
+                        Scene detailTaskScene = new Scene(new DetailItem().getDetailItemRoot(item, taskEntity -> {
+                            date.setText(taskEntity.getDate().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
+                            detailTaskStage.close();
+                        }), 300, 300);
+                        detailTaskStage.setScene(detailTaskScene);
+                        detailTaskStage.show();
                     });
-                    setGraphic(borderPane);
+                    setGraphic(rootDetailTask);
                 }
             }
         });
-
-        stage.setScene(new Scene(listView, 500, 500));
+        Button addTask = new Button("Add Task");
+        addTask.setOnAction(actionEvent -> {
+            Stage addTaskStage = new Stage();
+            Scene addTaskScene = new Scene(new AddItem().addItemRoot(taskEntity -> {
+                listView.getItems().add(taskEntity);
+                addTaskStage.close();
+            }), 300, 300);
+            addTaskStage.setScene(addTaskScene);
+//            listView.getItems().add(new TaskEntity("Item new","",false,""));
+            addTaskStage.show();
+        });
+        FlowPane root = new FlowPane();
+        root.getChildren().add(listView);
+        root.getChildren().add(addTask);
+        root.setAlignment(Pos.TOP_CENTER);
+        root.setOrientation(Orientation.VERTICAL);
+        stage.setScene(new Scene(root, 300, 500));
         stage.show();
 
     }
@@ -84,6 +114,7 @@ public class HelloApplication extends Application {
     public static void main(String[] args) {
         launch();
     }
+
     public static class MyItem {
         private final String text;
         private final Boolean selected;

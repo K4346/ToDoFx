@@ -61,83 +61,79 @@ public class HelloApplication extends Application {
                 if (empty || item == null) {
                     setGraphic(null);
                 } else {
-                    title.setText(item.getName());
-                    checkBox.setSelected(item.isReady());
-
-                    deleteButton.setOnAction(actionEvent -> {
-                        listView.getItems().remove(item);
-                        ArrayList<TaskEntity> taskList = new ArrayList<>(listView.getItems());
-                        data.setTasks(taskList);
-                    });
-
-                    date.setText(item.getDate().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
-                    reasonDateChangeText.setText(item.getReasonDateChange());
-
-                    outOfTimeText.setText(item.getComment().getValue());
-
-                    VBox vbox = new VBox(10,
-                            title,
-                            new HBox(10, date, reasonDateChangeText),
-                            new HBox(outOfTimeText));
-
-                    checkBox.setOnAction(actionEvent -> {
-                        item.setReady(checkBox.isSelected());
-                        item.setOutOfTime(item.isReady() && LocalDate.now().isAfter(item.getDate()));
-                        item.setComment(data.checkProgressByItem(item));
-                        ArrayList<TaskEntity> taskList = new ArrayList<>(listView.getItems());
-                        data.setTasks(taskList);
-
-                        listView.refresh();
-
-                    });
-                    HBox rootTask = new HBox(10, checkBox, vbox, deleteButton);
-                    rootTask.setManaged(true);
-                    rootTask.setMaxWidth(Double.MAX_VALUE);
-                    rootTask.setMaxHeight(Double.MAX_VALUE);
-                    rootTask.setPrefWidth(Region.USE_COMPUTED_SIZE);
-                    rootTask.setPrefHeight(Region.USE_COMPUTED_SIZE);
-                    vbox.setMaxWidth(Double.MAX_VALUE);
-                    vbox.setMaxHeight(Double.MAX_VALUE);
-                    vbox.setPrefWidth(0.0);
-                    vbox.setPrefHeight(0.0);
-                    vbox.setSpacing(5.0);
-                    HBox.setHgrow(vbox, Priority.ALWAYS);
-
-                    title.setStyle("-fx-font-weight: bold;");
-                    outOfTimeText.setStyle("-fx-font-style: italic;");
-
-                    rootTask.setStyle("-fx-border-color: gray; -fx-border-radius: 5.0;");
-                    rootTask.setPadding(new Insets(10, 10, 10, 10));
-
-                    vbox.addEventFilter(MouseEvent.MOUSE_CLICKED, event -> {
-                        Stage detailTaskStage = new Stage();
-                        detailTaskStage.initModality(Modality.APPLICATION_MODAL);
-                        detailTaskStage.setResizable(false);
-                        Scene detailTaskScene = new Scene(new DetailItem().getDetailItemRoot(item, taskEntity -> {
-                            item.setDate(taskEntity.getDate());
-                            item.setOutOfTime(taskEntity.getOutOfTime());
-
-                            item.setComment(data.checkProgressByItem(item));
-
-                            item.setReasonDateChange(taskEntity.getReasonDateChange());
-
-                            ArrayList<TaskEntity> taskList = new ArrayList<>(listView.getItems());
-                            data.setTasks(taskList);
-
-                            listView.refresh();
-                            detailTaskStage.close();
-                        }), 300, 300);
-                        detailTaskStage.setScene(detailTaskScene);
-                        detailTaskStage.setTitle("Задача");
-                        detailTaskStage.show();
-                    });
-                    setGraphic(rootTask);
+                    setGraphic(
+                            prepareViewHolder(item, title, date, checkBox, reasonDateChangeText, outOfTimeText, deleteButton)
+                    );
                 }
             }
         };
         listView.setCellFactory(cellFactory);
+
         Button addTask = initAddTaskButton();
 
+        showMainStage(stage, addTask);
+
+
+    }
+
+    public HBox prepareViewHolder(TaskEntity item, Text title, Text date, CheckBox checkBox, Text reasonDateChangeText, Text outOfTimeText, Button deleteButton) {
+        title.setText(item.getName());
+        checkBox.setSelected(item.isReady());
+
+        deleteButton.setOnAction(actionEvent -> deleteOnClick(item));
+
+        date.setText(item.getDate().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
+
+        reasonDateChangeText.setText(item.getReasonDateChange());
+
+        outOfTimeText.setText(item.getComment().getValue());
+
+        VBox vbox = new VBox(10,
+                title,
+                new HBox(10, date, reasonDateChangeText),
+                new HBox(outOfTimeText));
+
+        checkBox.setOnAction(actionEvent -> checkBoxOnClick(item, checkBox.isSelected()));
+        HBox rootTask = new HBox(10, checkBox, vbox, deleteButton);
+        rootTask.setManaged(true);
+        rootTask.setMaxWidth(Double.MAX_VALUE);
+        rootTask.setMaxHeight(Double.MAX_VALUE);
+        rootTask.setPrefWidth(Region.USE_COMPUTED_SIZE);
+        rootTask.setPrefHeight(Region.USE_COMPUTED_SIZE);
+        vbox.setMaxWidth(Double.MAX_VALUE);
+        vbox.setMaxHeight(Double.MAX_VALUE);
+        vbox.setPrefWidth(0.0);
+        vbox.setPrefHeight(0.0);
+        vbox.setSpacing(5.0);
+        HBox.setHgrow(vbox, Priority.ALWAYS);
+
+        title.setStyle("-fx-font-weight: bold;");
+        outOfTimeText.setStyle("-fx-font-style: italic;");
+
+        rootTask.setStyle("-fx-border-color: gray; -fx-border-radius: 5.0;");
+        rootTask.setPadding(new Insets(10, 10, 10, 10));
+
+        vbox.addEventFilter(MouseEvent.MOUSE_CLICKED, event -> onDetailClickListener(item));
+
+        return rootTask;
+    }
+
+    private void checkBoxOnClick(TaskEntity item, boolean selected) {
+        item.setReady(selected);
+        item.setOutOfTime(item.isReady() && LocalDate.now().isAfter(item.getDate()));
+        item.setComment(data.checkProgressByItem(item));
+        ArrayList<TaskEntity> taskList = new ArrayList<>(listView.getItems());
+        data.setTasks(taskList);
+        listView.refresh();
+    }
+
+    private void deleteOnClick(TaskEntity item) {
+        listView.getItems().remove(item);
+        ArrayList<TaskEntity> taskList = new ArrayList<>(listView.getItems());
+        data.setTasks(taskList);
+    }
+
+    private void showMainStage(Stage stage, Button addTask) {
         VBox root = new VBox();
         root.getChildren().add(listView);
         root.getChildren().add(addTask);
@@ -149,8 +145,31 @@ public class HelloApplication extends Application {
         stage.setScene(scene);
         stage.setTitle("Список задач");
         stage.show();
-
     }
+
+    private void onDetailClickListener(TaskEntity item) {
+        Stage detailTaskStage = new Stage();
+        detailTaskStage.initModality(Modality.APPLICATION_MODAL);
+        detailTaskStage.setResizable(false);
+        Scene detailTaskScene = new Scene(new DetailItem().getDetailItemRoot(item, taskEntity -> {
+            item.setDate(taskEntity.getDate());
+            item.setOutOfTime(taskEntity.getOutOfTime());
+
+            item.setComment(data.checkProgressByItem(item));
+
+            item.setReasonDateChange(taskEntity.getReasonDateChange());
+
+            ArrayList<TaskEntity> taskList = new ArrayList<>(listView.getItems());
+            data.setTasks(taskList);
+
+            listView.refresh();
+            detailTaskStage.close();
+        }), 300, 300);
+        detailTaskStage.setScene(detailTaskScene);
+        detailTaskStage.setTitle("Задача");
+        detailTaskStage.show();
+    }
+
 
     private Button initAddTaskButton() {
         Button addTask = new Button("Add Task");

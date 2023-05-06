@@ -14,12 +14,14 @@ import java.util.function.Consumer;
 
 
 public class AddItem {
-    public TextField title;
-    public TextField description;
-    public DatePicker datePicker;
-    public ComboBox<String> spinner;
+    private TextField title;
+    private TextField description;
+    private DatePicker datePicker;
+    private ComboBox<String> spinner;
 
-    public CheckBox isRegular;
+    private CheckBox isRegular;
+
+    private Button addButton;
 
     public Pane addItemRoot(Consumer<TaskEntity> addItemCallback) {
         title = new TextField();
@@ -30,27 +32,17 @@ public class AddItem {
 
         datePicker = new DatePicker();
         datePicker.setValue(LocalDate.now());
+
         spinner = new ComboBox<>();
         spinner.getItems().addAll("Ежедневно", "Еженедельно", "Ежемесячно");
         spinner.setVisible(false);
 
         isRegular = new CheckBox();
-        isRegular.setOnAction(actionEvent -> {
-            if (isRegular.isSelected()) spinner.setVisible(true);
-            else spinner.setVisible(false);
-        });
 
-        Button addButton = new Button("Добавить");
-        addButton.setOnAction(actionEvent -> {
-            if (title.getText().isEmpty()) {
-                showAlert(true);
-            } else if (datePicker.getValue().isBefore(LocalDate.now())) {
-                showAlert(false);
-            } else {
-                addItem(addItemCallback);
-            }
+        addButton = new Button("Добавить");
 
-        });
+        setOnclickListenners(addItemCallback);
+
         HBox hBox = new HBox(5, new Text("Регулярная задача:"), isRegular, spinner);
         VBox root = new VBox(
                 10,
@@ -74,6 +66,23 @@ public class AddItem {
                 e -> addButton.setEffect(null)
         );
         return root;
+    }
+
+    private void setOnclickListenners(Consumer<TaskEntity> addItemCallback) {
+        isRegular.setOnAction(actionEvent -> {
+            spinner.setVisible(isRegular.isSelected());
+        });
+
+        addButton.setOnAction(actionEvent -> {
+            if (title.getText().isEmpty()) {
+                showAlert(true);
+            } else if (datePicker.getValue().isBefore(LocalDate.now())) {
+                showAlert(false);
+            } else {
+                addItem(addItemCallback);
+            }
+
+        });
     }
 
     private void showAlert(boolean nameError) {

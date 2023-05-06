@@ -15,13 +15,13 @@ import java.time.format.DateTimeFormatter;
 import java.util.function.Consumer;
 
 public class DetailItem {
-    public DatePicker datePicker;
+    private DatePicker datePicker;
 
-    public TextField reasonTV;
+    private TextField reasonTV;
 
-    public CheckBox changeDateCB;
+    private CheckBox changeDateCB;
 
-    public Button changeButton;
+    private Button changeButton;
 
     public Pane getDetailItemRoot(TaskEntity task, Consumer<TaskEntity> itemCallback) {
         Text title = new Text(task.getName());
@@ -47,6 +47,7 @@ public class DetailItem {
 
         );
         VBox.setMargin(hBox, new Insets(0, 0, 0, 50));
+
         setListenners(task, root, itemCallback);
 
         root.setPadding(new Insets(10));
@@ -88,9 +89,9 @@ public class DetailItem {
         changeButton.setOnAction(actionEvent -> {
             if (changeDateCB.isSelected() && (datePicker.getValue() == task.date || datePicker.getValue().isBefore(LocalDate.now()))) {
                 showAlert(true);
-            } else if (reasonTV.getText().isEmpty()){
+            } else if (reasonTV.getText().isEmpty()) {
                 showAlert(false);
-            } else{
+            } else {
                 addItem(task, itemCallback);
             }
 
